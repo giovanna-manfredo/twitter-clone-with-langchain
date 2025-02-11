@@ -1,0 +1,42 @@
+services:
+  django:
+    build: ./
+    command: >
+      bash -c "
+        dockerize -wait tcp://database:3306 -timeout 30s &&
+        poetry run python ./backend/manage.py makemigrations &&
+        poetry run python ./backend/manage.py migrate &&
+        poetry run python ./backend/manage.py runserver 0.0.0.0:8000
+      "
+    ports:
+      - "8080:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - database
+    networks:
+      - network_base
+    environment:
+      - DATABASE_URL=mysql://${USER_DB}:${DB_PASSWORD}@database:3306/${NAME_DB}
+    env_file:
+      - .env
+  database:
+    image: mysql:8
+    environment:
+      - MYSQL_DATABASE=${NAME_DB}
+      - MYSQL_ROOT_PASSWORD=${PASSWORD_DB}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306" 
+    networks:
+      - network_base
+    env_file:
+      - .env
+
+networks:
+  network_base:
+    driver: bridge
+
+volumes:
+  mysql_data: 
